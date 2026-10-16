@@ -1,47 +1,263 @@
 {
   "info": {
     "name": "Kloudspot Helpdesk",
+    "description": "Run in order: Signup admin → Signup customer → Login customer → Create ticket → Login admin → list/update/comment/users.\n\nAfter login/signup, the token is saved automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "token", "value": "" }
+    { "key": "token", "value": "" },
+    { "key": "ticketId", "value": "1" },
+    { "key": "adminEmail", "value": "ravi@kloudspot.in" },
+    { "key": "customerEmail", "value": "anita@gmail.com" },
+    { "key": "password", "value": "Password123!" }
   ],
   "item": [
     {
-      "name": "Login",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"agent@acme.com\",\n  \"password\": \"Password123!\"\n}"
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup admin (company email)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi Admin\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/signup"
+          }
         },
-        "url": "{{baseUrl}}/api/auth/login"
-      }
+        {
+          "name": "Signup customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Anita Customer\",\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{password}}\",\n  \"organizationName\": \"kloudspot.in\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/signup"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Company domains",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/company-domains"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/me"
+          }
+        }
+      ]
     },
     {
-      "name": "List tickets",
-      "request": {
-        "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-        "url": "{{baseUrl}}/api/tickets?status=OPEN&priority=HIGH&page=0&size=10"
-      }
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "Create ticket (customer only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('ticketId', String(pm.response.json().id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Cannot print\",\n  \"description\": \"Finance floor printer is offline.\",\n  \"priority\": \"MEDIUM\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tickets"
+          }
+        },
+        {
+          "name": "List tickets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/tickets?status=OPEN&priority=MEDIUM&page=0&size=10"
+          }
+        },
+        {
+          "name": "Get ticket",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}"
+          }
+        },
+        {
+          "name": "Update ticket (staff)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"priority\": \"HIGH\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}"
+          }
+        },
+        {
+          "name": "Add public comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Thanks, looking into this.\",\n  \"internal\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}/comments"
+          }
+        },
+        {
+          "name": "Add internal comment (staff)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Need building access after 6pm.\",\n  \"internal\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketId}}/comments"
+          }
+        }
+      ]
     },
     {
-      "name": "Create ticket",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}" },
-          { "key": "Content-Type", "value": "application/json" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"subject\": \"Cannot print\",\n  \"description\": \"Finance floor printer is offline.\",\n  \"priority\": \"MEDIUM\"\n}"
+      "name": "Users",
+      "item": [
+        {
+          "name": "List staff",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/users"
+          }
         },
-        "url": "{{baseUrl}}/api/tickets"
-      }
+        {
+          "name": "Create support agent (org admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kunal Agent\",\n  \"email\": \"kunal@kloudspot.in\",\n  \"password\": \"Password123!\",\n  \"role\": \"SUPPORT_AGENT\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          }
+        }
+      ]
     }
   ]
 }

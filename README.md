@@ -1,7 +1,16 @@
 # Helpdesk Ticketing
 
 ## Overview
-Spring Boot helpdesk with JWT auth and per-organization tickets. Persistence is **Spring JDBC** (`NamedParameterJdbcTemplate` + `schema.sql`), not JPA. Sign up creates a new organization (you become `ORG_ADMIN`); then add agents/customers from Users.
+Spring Boot helpdesk with JWT auth and per-organization tickets. Persistence is **Spring JDBC** (`NamedParameterJdbcTemplate` + `schema.sql`), not JPA.
+
+**Reviewer path:** start Postgres → run the app → sign up admin then customer in the UI (or import Postman) → `./mvnw test`.
+
+| Item | Location |
+|---|---|
+| Run locally | Setup below |
+| API docs | Swagger at http://localhost:8080/swagger-ui.html |
+| Postman | `postman/Helpdesk.postman_collection.json` |
+| Unit tests | `src/test/java/.../TicketServiceImplTest.java` (`./mvnw test`) |
 
 ## ER diagram
 Tables and FKs match `src/main/resources/schema.sql`.
@@ -86,10 +95,20 @@ Override DB with `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_
 - UI: http://localhost:8080
 - Swagger: http://localhost:8080/swagger-ui.html
 
-## Auth
-- Sign up: http://localhost:8080/signup.html (`POST /api/auth/signup`) — emails on a company domain (default `@kloudspot.in`) become `ORG_ADMIN` with org-wide access. Other emails become `CUSTOMER` and join that org by name (e.g. `kloudspot.in`).
-- Login: http://localhost:8080/login.html (`POST /api/auth/login`)
-- Org admin creates extra users at **Users** (`POST /api/users`)
+## Auth and demo accounts
+Sign up first (there is no seed data). **Admin first**, then customer.
+
+| | Name | Email | Password | Org |
+|---|---|---|---|---|
+| Admin (`ORG_ADMIN`) | Ravi Admin | `ravi@kloudspot.in` | `Password123!` | created as `kloudspot.in` |
+| Customer | Anita Customer | `anita@gmail.com` | `Password123!` | `kloudspot.in` |
+
+- Company-domain emails (`@kloudspot.in`) become `ORG_ADMIN`. Other emails become `CUSTOMER` and must join by org name (`kloudspot.in` or `kloudspot`).
+- Only **customers** can create tickets. Staff list/assign/comment/close.
+- Extra agents: **Users** page (`POST /api/users`) as org admin.
+
+## Postman
+Import `postman/Helpdesk.postman_collection.json`. Collection variables: `baseUrl`, `token` (filled after signup/login), `ticketId`. Run **Signup admin** → **Signup customer** → **Login** → **Create ticket** → **Login as admin** → update/comment/users.
 
 ## Tests
 ```bash
@@ -109,7 +128,7 @@ Code is grouped by feature (`user`, `ticket`, `auth`, `organization`). Each feat
 | POST | `/api/auth/login` | JWT |
 | GET | `/api/me` | Current user |
 | GET | `/api/tickets` | Filters: status, priority, assignedAgentId, search, page |
-| POST | `/api/tickets` | Create |
+| POST | `/api/tickets` | Create (customer only) |
 | GET | `/api/tickets/{id}` | Detail + comments + history |
 | PUT | `/api/tickets/{id}` | Staff: status/assign/priority; customer → 403 on status |
 | POST | `/api/tickets/{id}/comments` | `internal: true` staff-only |
