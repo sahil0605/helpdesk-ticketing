@@ -1,0 +1,47 @@
+{
+  "info": {
+    "name": "Kloudspot Helpdesk",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"agent@acme.com\",\n  \"password\": \"Password123!\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "List tickets",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/tickets?status=OPEN&priority=HIGH&page=0&size=10"
+      }
+    },
+    {
+      "name": "Create ticket",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"subject\": \"Cannot print\",\n  \"description\": \"Finance floor printer is offline.\",\n  \"priority\": \"MEDIUM\"\n}"
+        },
+        "url": "{{baseUrl}}/api/tickets"
+      }
+    }
+  ]
+}

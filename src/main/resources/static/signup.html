@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sign up</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Sign up</h1>
+      <p class="meta">Use a company email (<code>@kloudspot.in</code>) to create the org as admin. Customers join after that — type <code>kloudspot.in</code> or <code>kloudspot</code>.</p>
+      <p id="error" class="error"></p>
+      <form id="form">
+        <label>Your name</label>
+        <input id="name" required>
+        <label>Email</label>
+        <input type="email" id="email" required>
+        <div id="orgWrap">
+          <label>Organization to join</label>
+          <input id="organizationName" placeholder="kloudspot.in">
+        </div>
+        <label>Password</label>
+        <input type="password" id="password" minlength="8" required>
+        <button type="submit">Sign up</button>
+      </form>
+      <p class="meta">Already have an account? <a href="login.html">Sign in</a></p>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+  <script>
+    let companyDomains = ['kloudspot.in'];
+    fetch('/api/auth/company-domains').then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d.length) companyDomains = d.map(x => String(x).toLowerCase());
+      syncOrg();
+    }).catch(() => {});
+    const emailInput = document.getElementById('email');
+    const orgWrap = document.getElementById('orgWrap');
+    const orgInput = document.getElementById('organizationName');
+    function isCompanyEmail(email) {
+      const at = email.lastIndexOf('@');
+      if (at < 0) return false;
+      return companyDomains.includes(email.slice(at + 1).trim().toLowerCase());
+    }
+    function syncOrg() {
+      const company = isCompanyEmail(emailInput.value);
+      orgWrap.classList.toggle('hidden', company);
+      orgInput.required = !company;
+    }
+    emailInput.addEventListener('input', syncOrg);
+    document.getElementById('form').onsubmit = async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('error');
+      err.textContent = '';
+      try {
+        const payload = {
+          name: document.getElementById('name').value,
+          email: emailInput.value,
+          password: document.getElementById('password').value
+        };
+        if (!isCompanyEmail(payload.email)) payload.organizationName = orgInput.value;
+        const data = await apiFetch('/api/auth/signup', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data));
+        location.href = 'tickets.html';
+      } catch (ex) {
+        err.textContent = ex.message;
+      }
+    };
+  </script>
+</body>
+</html>

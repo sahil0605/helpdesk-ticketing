@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Users</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav id="nav"></nav>
+  <div class="wrap">
+    <h1>Staff</h1>
+    <p id="error" class="error"></p>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="card row">
+      <h2>Create user</h2>
+      <form id="form">
+        <label>Name</label>
+        <input id="name" required>
+        <label>Email</label>
+        <input type="email" id="email" required>
+        <label>Password</label>
+        <input type="password" id="password" required minlength="8">
+        <label>Role</label>
+        <select id="role">
+          <option>ORG_ADMIN</option>
+          <option selected>SUPPORT_AGENT</option>
+          <option>CUSTOMER</option>
+        </select>
+        <button type="submit">Create</button>
+      </form>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+  <script>
+    requireLogin();
+    if (getUser().role !== 'ORG_ADMIN') location.href = 'tickets.html';
+    renderNav();
+
+    async function load() {
+      const err = document.getElementById('error');
+      err.textContent = '';
+      try {
+        const staff = await apiFetch('/api/users');
+        const tbody = document.getElementById('rows');
+        tbody.innerHTML = '';
+        staff.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + u.name + '</td><td>' + u.email + '</td><td>' + u.role + '</td>';
+          tbody.appendChild(tr);
+        });
+      } catch (ex) { err.textContent = ex.message; }
+    }
+
+    document.getElementById('form').onsubmit = async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('error');
+      err.textContent = '';
+      try {
+        await apiFetch('/api/users', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            role: document.getElementById('role').value
+          })
+        });
+        document.getElementById('form').reset();
+        load();
+      } catch (ex) { err.textContent = ex.message; }
+    };
+    load();
+  </script>
+</body>
+</html>

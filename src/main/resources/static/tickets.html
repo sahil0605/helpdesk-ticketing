@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tickets</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav id="nav"></nav>
+  <div class="wrap">
+    <h1>Tickets</h1>
+    <p id="error" class="error"></p>
+    <div class="filters">
+      <select id="status">
+        <option value="">All statuses</option>
+        <option>OPEN</option>
+        <option>IN_PROGRESS</option>
+        <option>CLOSED</option>
+      </select>
+      <select id="priority">
+        <option value="">All priorities</option>
+        <option>LOW</option>
+        <option>MEDIUM</option>
+        <option>HIGH</option>
+      </select>
+      <select id="agent"></select>
+      <input id="search" placeholder="Search">
+      <a id="newTicket" class="btn hidden" href="create-ticket.html">New Ticket</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Subject</th><th>Priority</th><th>Status</th>
+          <th>Requester</th><th>Assignee</th><th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="pager">
+      <button type="button" id="prev">Prev</button>
+      <span id="pageinfo"></span>
+      <button type="button" id="next">Next</button>
+    </div>
+  </div>
+  <script src="js/app.js"></script>
+  <script>
+    requireLogin();
+    renderNav();
+    const user = getUser();
+    if (user.role === 'CUSTOMER') {
+      document.getElementById('newTicket').classList.remove('hidden');
+    }
+    let page = 0;
+    const size = 10;
+    const agentSel = document.getElementById('agent');
+    if (user.role === 'CUSTOMER') {
+      agentSel.classList.add('hidden');
+    } else {
+      agentSel.innerHTML = '<option value="">All agents</option>';
+      apiFetch('/api/users').then(staff => {
+        staff.forEach(s => {
+          const o = document.createElement('option');
+          o.value = s.id;
+          o.textContent = s.name;
+          agentSel.appendChild(o);
+        });
+      }).catch(ex => document.getElementById('error').textContent = ex.message);
+    }
+
+    async function load() {
+      const err = document.getElementById('error');
+      err.textContent = '';
+      const params = new URLSearchParams({ page, size });
+      const st = document.getElementById('status').value;
+      const pr = document.getElementById('priority').value;
+      const ag = agentSel.value;
+      const q = document.getElementById('search').value;
+      if (st) params.set('status', st);
+      if (pr) params.set('priority', pr);
+      if (ag) params.set('assignedAgentId', ag);
+      if (q) params.set('search', q);
+      try {
+        const data = await apiFetch('/api/tickets?' + params);
+        const tbody = document.getElementById('rows');
+        tbody.innerHTML = '';
+        (data.content || []).forEach(t => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + t.id + '</td><td><a href="ticket.html?id=' + t.id + '">' + t.subject + '</a></td><td>'
+            + t.priority + '</td><td>' + t.status + '</td><td>' + (t.requester && t.requester.name || '') + '</td><td>'
+            + (t.assignedAgent && t.assignedAgent.name || '') + '</td><td>' + (t.createdAt || '') + '</td>';
+          tbody.appendChild(tr);
+        });
+        const pageMeta = data.page || data;
+        const number = pageMeta.number || 0;
+        const totalPages = pageMeta.totalPages || 1;
+        document.getElementById('pageinfo').textContent = 'Page ' + (number + 1) + ' of ' + totalPages;
+        document.getElementById('prev').disabled = !number;
+        document.getElementById('next').disabled = (number + 1) >= totalPages;
+      } catch (ex) {
+        err.textContent = ex.message;
+      }
+    }
+
+    ['status','priority','agent'].forEach(id => document.getElementById(id).onchange = () => { page = 0; load(); });
+    document.getElementById('search').onkeydown = (e) => { if (e.key === 'Enter') { page = 0; load(); } };
+    document.getElementById('prev').onclick = () => { if (page > 0) { page--; load(); } };
+    document.getElementById('next').onclick = () => { page++; load(); };
+    load();
+  </script>
+</body>
+</html>
